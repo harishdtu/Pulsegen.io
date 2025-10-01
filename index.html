@@ -1,0 +1,195 @@
+<!DOCTYPE html> 
+<!-- Declares this file as an HTML5 document -->
+
+<html lang="en"> 
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensures proper character encoding for text -->
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Makes the page responsive on mobile devices -->
+
+  <title>G2 Review Scraper</title>
+  <!-- Page title shown in browser tab -->
+
+  <style>
+    /* ----------- Global Page Styling ----------- */
+    body {
+      font-family: Arial, sans-serif; /* Default font */
+      padding: 20px; /* Adds space around the content */
+      background: linear-gradient(135deg, #f9f9f9, #e6f0ff); /* Soft background gradient */
+      color: #333; /* Dark gray text color */
+    }
+
+    /* Label styling for input fields */
+    label {
+      display: block;
+      margin-top: 12px; /* Space between labels */
+      font-weight: bold;
+      color: #2c3e50; /* Dark blue-gray */
+    }
+
+    /* Input, dropdown, and text area styling */
+    input, select, textarea {
+      width: 100%; /* Full width */
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #ccc; /* Light gray border */
+      border-radius: 6px; /* Rounded corners */
+      outline: none; /* Removes default focus outline */
+      transition: border 0.3s, box-shadow 0.3s; /* Smooth focus animation */
+    }
+
+    /* Highlight input field when focused */
+    input:focus, select:focus, textarea:focus {
+      border-color: #4a90e2; /* Blue border */
+      box-shadow: 0 0 6px rgba(74, 144, 226, 0.5); /* Blue glow */
+    }
+
+    /* Button styling */
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #4a90e2, #007aff); /* Gradient blue */
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s; /* Smooth hover/press effect */
+    }
+
+    /* Hover effect on button */
+    button:hover {
+      background: linear-gradient(135deg, #007aff, #005bb5); /* Darker blue */
+      transform: translateY(-2px); /* Slight lift */
+    }
+
+    /* Button when pressed */
+    button:active {
+      transform: translateY(0); /* Reset lift */
+    }
+
+    /* Loading message style */
+    #loading {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #ff6600; /* Orange text */
+    }
+
+    /* Output area (JSON response) */
+    #output {
+      white-space: pre-wrap; /* Keeps formatting (line breaks, spaces) */
+      background: #fdfdfd; /* White box */
+      padding: 15px;
+      border: 1px solid #ddd; /* Light border */
+      margin-top: 20px;
+      max-height: 400px; /* Scrollable max height */
+      overflow: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Subtle shadow */
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Main Heading -->
+  <h1>G2 Review Scraper</h1>
+
+  <!-- Input field for product/company slug or ID -->
+  <label>
+    Product (Company) G2 Slug or ID:
+    <input type="text" id="company" placeholder="Enter G2 Product Slug/ID" />
+  </label>
+
+  <!-- Start Date field -->
+  <label>
+    Start Date:
+    <input type="date" id="startDate" />
+  </label>
+
+  <!-- End Date field -->
+  <label>
+    End Date:
+    <input type="date" id="endDate" />
+  </label>
+
+  <!-- Dropdown for selecting source -->
+  <label>
+    Source:
+    <select id="source">
+      <option value="g2" selected>G2</option>
+    </select>
+  </label>
+
+  <!-- Button to trigger review fetching -->
+  <button id="fetchBtn">Fetch Reviews</button>
+
+  <!-- Loading indicator (hidden until fetch starts) -->
+  <div id="loading" style="display:none;">Fetching reviews...</div>
+
+  <!-- Output area where reviews will be displayed -->
+  <pre id="output"></pre>
+
+  <!-- ----------- JavaScript Section ----------- -->
+  <script>
+    // Grab references to DOM elements
+    const fetchBtn = document.getElementById('fetchBtn');
+    const outputEl = document.getElementById('output');
+    const loadingEl = document.getElementById('loading');
+
+    // Add event listener for button click
+    fetchBtn.addEventListener('click', async () => {
+      // Read user input values
+      const company = document.getElementById('company').value.trim();
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const source = document.getElementById('source').value;
+
+      // Validation: check if company input is empty
+      if (!company) {
+        alert('Please enter the G2 Product Slug or ID.');
+        return;
+      }
+
+      // Show loading message and clear old output
+      loadingEl.style.display = 'block';
+      outputEl.textContent = '';
+
+      try {
+        // Send request to backend `/scrape` route
+        const response = await fetch('/scrape', {
+          method: 'POST', // POST request
+          headers: { 'Content-Type': 'application/json' }, // Sending JSON
+          body: JSON.stringify({ company, startDate, endDate, source }) // Data payload
+        });
+
+        // Handle response errors
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || response.statusText);
+        }
+
+        // Parse JSON response
+        const result = await response.json();
+
+        // Hide loading message
+        loadingEl.style.display = 'none';
+
+        // Check if no reviews were found
+        if (result.reviews.length === 0) {
+          outputEl.textContent = 'No reviews found for this product.';
+        } else {
+          // Pretty-print reviews JSON
+          outputEl.textContent = JSON.stringify(result.reviews, null, 2);
+        }
+
+      } catch (error) {
+        // Hide loading and show error message
+        loadingEl.style.display = 'none';
+        outputEl.textContent = 'Error: ' + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
